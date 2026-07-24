@@ -1,3 +1,5 @@
+
+Markdown
 # C++ Templated Ring Buffer (Circular Buffer)
 
 A lightweight, header-only, templated circular buffer implementation written in modern C++17. Designed for predictable FIFO streaming, low overhead, and safe memory management on embedded targets like the **Raspberry Pi Compute Module 4 (CM4)**.
@@ -29,8 +31,6 @@ public:
     [[nodiscard]] bool empty() const;           // Returns true if count == 0
     [[nodiscard]] bool full() const;            // Returns true if count == capacity
 };
-
-
 Hardware Execution & Build Instructions
 Tested and executed on Raspberry Pi CM4 running Linux.
 
