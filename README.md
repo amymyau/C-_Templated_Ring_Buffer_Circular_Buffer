@@ -1,4 +1,5 @@
 
+
 Markdown
 # C++ Templated Ring Buffer (Circular Buffer)
 
@@ -33,21 +34,31 @@ public:
 };
 ```
 
-Hardware Execution & Build Instructions
-Tested and executed on Raspberry Pi CM4 running Linux.
+---
 
-1. Compile
-Compile using g++ or clang++ with standard C++17 support enabled:
+## Hardware Execution & Build Instructions
 
-Bash
+Tested and executed on **Raspberry Pi CM4** running Linux.
+
+### 1. Compile
+Compile using `g++` or `clang++` with standard C++17 support enabled:
+
+```bash
 g++ -std=c++17 -O2 main.cpp -o ring_buffer
-2. Run
-Bash
+```
+
+### 2. Run
+```bash
 ./ring_buffer
-Verification Output
+```
+
+---
+
+## Verification Output
+
 Below is the verified execution trace confirming modulo wrap-around logic and strict overflow/underflow bounds handling:
 
-Plaintext
+```text
 --- Enqueueing Items ---
 Enqueued: 10
 Enqueued: 20
@@ -63,3 +74,4 @@ Dequeued: 30
 Dequeued: 40
 Dequeued: 50
 Dequeue failed: Buffer is EMPTY!
+```
