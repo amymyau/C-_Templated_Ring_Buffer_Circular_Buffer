@@ -29,3 +29,35 @@ public:
     [[nodiscard]] bool empty() const;           // Returns true if count == 0
     [[nodiscard]] bool full() const;            // Returns true if count == capacity
 };
+
+
+Hardware Execution & Build Instructions
+Tested and executed on Raspberry Pi CM4 running Linux.
+
+1. Compile
+Compile using g++ or clang++ with standard C++17 support enabled:
+
+Bash
+g++ -std=c++17 -O2 main.cpp -o ring_buffer
+2. Run
+Bash
+./ring_buffer
+Verification Output
+Below is the verified execution trace confirming modulo wrap-around logic and strict overflow/underflow bounds handling:
+
+Plaintext
+--- Enqueueing Items ---
+Enqueued: 10
+Enqueued: 20
+Enqueued: 30
+Enqueued: 40
+Enqueued: 50
+Enqueue 60 failed: Buffer is FULL!
+
+--- Dequeueing Items ---
+Dequeued: 10
+Dequeued: 20
+Dequeued: 30
+Dequeued: 40
+Dequeued: 50
+Dequeue failed: Buffer is EMPTY!
