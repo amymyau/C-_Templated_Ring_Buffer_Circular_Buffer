@@ -1,7 +1,7 @@
 
 
 
-Markdown
+
 ## Hardware-in-the-Loop (HIL) Kernel Debug & UART Validation Pipeline
 
 ### Objective
@@ -37,8 +37,9 @@ Host USB-to-UART RXD -> CM4 GPIO 12 (TXD5 / Pin 32)
 Host USB-to-UART TXD -> CM4 GPIO 13 (RXD5 / Pin 33)
 
 Ground -> CM4 GND (Pin 34)
+```
 
-Markdown
+
 # CM4 Ringbuffer & Kernel Debugging Environment
 
 This repository contains the C++ Ringbuffer workload generator (`workload_gen_gpio_v2_PCIE.cpp`) and the associated Linux kernel debugging infrastructure for the Raspberry Pi Compute Module 4 (CM4).
