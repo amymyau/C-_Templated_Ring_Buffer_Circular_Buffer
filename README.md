@@ -1,3 +1,43 @@
+
+Here is the clean, raw Markdown ready to copy and paste directly into the GitHub Web Editor.
+
+Markdown
+## Hardware-in-the-Loop (HIL) Kernel Debug & UART Validation Pipeline
+
+### Objective
+Architected and validated a low-level hardware-in-the-loop (HIL) debug pipeline on a Raspberry Pi Compute Module 4 (CM4) to analyze kernel panic behavior during active workload execution without interfering with primary system GPIO peripherals.
+
+---
+
+### Key Technical Milestones
+
+* **Workload Generator Execution:** Validated C++ workload generator (`ring_buffer`) execution and verified FIFO boundary safety handling under full/empty condition stress tests.
+* **Dedicated UART Output Routing (`UART5` Overlay):** Isolated kernel log streams away from the primary UART (`GPIO 14/15`). Re-routed serial console traffic to **UART5 (`GPIO 12/13` / Pins 32 & 33)** via `dtoverlay=uart5,no_ctsrts` in `/boot/firmware/config.txt`. This freed up `GPIO 14/15` for dedicated active thermal/fan control circuits.
+* **Kernel Console & Debugger Setup:** Reconfigured `/boot/firmware/cmdline.txt` to map stdout/printk streams explicitly to `console=ttyAMA5,115200` alongside `kgdboc=ttyAMA5,115200`. Preserved local display capabilities (`tty1`) while streaming raw kernel backtraces to a host PC running `picocom`.
+* **Crash Trapping & State Verification:** Triggered parallel kernel panics (`/proc/sysrq-trigger`) during active workload loops. Successfully trapped CPU core execution state and PID backtrace (`Comm: ring_buffer`) inside the `kdb` interactive shell over `ttyAMA5`.
+
+---
+
+### System Configurations
+
+#### `/boot/firmware/config.txt`
+```ini
+[cm4]
+otg_mode=1
+
+[all]
+enable_uart=1
+dtoverlay=uart5,no_ctsrts
+/boot/firmware/cmdline.txt
+Plaintext
+console=ttyAMA5,115200 kgdboc=ttyAMA5,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 fsck.repair=yes rootwait
+Hardware Pinout Mapping
+Host USB-to-UART RXD -> CM4 GPIO 12 (TXD5 / Pin 32)
+
+Host USB-to-UART TXD -> CM4 GPIO 13 (RXD5 / Pin 33)
+
+Ground -> CM4 GND (Pin 34)
+
 Markdown
 # CM4 Ringbuffer & Kernel Debugging Environment
 
