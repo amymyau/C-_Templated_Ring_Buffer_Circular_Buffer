@@ -1,5 +1,6 @@
 
 
+
 ## 🛠️ Root Cause Analysis & Resolution: CM4 Hardware Reset During KDB Traps
 
 ### 📌 Summary & Problem Statement
@@ -14,8 +15,8 @@ While executing a high-stress `ring_buffer` workload pinned to **CPU 2** on a **
 
 The unexpected reboots were caused by **hardware-level power management thresholds**, not software watchdog timers:
 
-1. **PMIC $I^2C$ Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the **MxL7704 PMIC** via $I^2C$. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts $V_{\text{DD\_CORE}}$.
-2. **DVFS $dI/dt$ Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high $dI/dt$ transient on $V_{\text{CORE}}$. Without fixed DVFS parameters, $V_{\text{CORE}}$ dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
+1. **PMIC I^2C Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the MxL7704 PMIC via I^2C. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts V_DD_CORE.
+2. **DVFS $dI/dt$ Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high dI/dt transient on V_CORE. Without fixed DVFS parameters, V_CORE dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
 
 ---
 
@@ -32,43 +33,6 @@ Fixed CPU frequency and voltage to eliminate dynamic power gating and supply rai
 # Prevent PMIC voltage droop and maintain stable power rails
 force_turbo=1
 arm_freq=1500
-## Hardware-in-the-Loop (HIL) Kernel Debug & UART Validation Pipeline
-```
-
-
-### Objective
-Architected and validated a low-level hardware-in-the-loop (HIL) debug pipeline on a Raspberry Pi Compute Module 4 (CM4) to analyze kernel panic behavior during active workload execution without interfering with primary system GPIO peripherals.
-
----
-
-### Key Technical Milestones
-
-* **Workload Generator Execution:** Validated C++ workload generator (`ring_buffer`) execution and verified FIFO boundary safety handling under full/empty condition stress tests.
-* **Dedicated UART Output Routing (`UART5` Overlay):** Isolated kernel log streams away from the primary UART (`GPIO 14/15`). Re-routed serial console traffic to **UART5 (`GPIO 12/13` / Pins 32 & 33)** via `dtoverlay=uart5,no_ctsrts` in `/boot/firmware/config.txt`. This freed up `GPIO 14/15` for dedicated active thermal/fan control circuits.
-* **Kernel Console & Debugger Setup:** Reconfigured `/boot/firmware/cmdline.txt` to map stdout/printk streams explicitly to `console=ttyAMA5,115200` alongside `kgdboc=ttyAMA5,115200`. Preserved local display capabilities (`tty1`) while streaming raw kernel backtraces to a host PC running `picocom`.
-* **Crash Trapping & State Verification:** Triggered parallel kernel panics (`/proc/sysrq-trigger`) during active workload loops. Successfully trapped CPU core execution state and PID backtrace (`Comm: ring_buffer`) inside the `kdb` interactive shell over `ttyAMA5`.
-
----
-
-### System Configurations
-
-#### `/boot/firmware/config.txt`
-```ini
-[cm4]
-otg_mode=1
-
-[all]
-enable_uart=1
-dtoverlay=uart5,no_ctsrts
-/boot/firmware/cmdline.txt
-Plaintext
-console=ttyAMA5,115200 kgdboc=ttyAMA5,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 fsck.repair=yes rootwait
-Hardware Pinout Mapping
-Host USB-to-UART RXD -> CM4 GPIO 12 (TXD5 / Pin 32)
-
-Host USB-to-UART TXD -> CM4 GPIO 13 (RXD5 / Pin 33)
-
-Ground -> CM4 GND (Pin 34)
 ```
 
 
