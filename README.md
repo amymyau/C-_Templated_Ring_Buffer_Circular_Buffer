@@ -1,8 +1,40 @@
 
 
+## 🛠️ Root Cause Analysis & Resolution: CM4 Hardware Reset During KDB Traps
 
+### 📌 Summary & Problem Statement
+While executing a high-stress `ring_buffer` workload pinned to **CPU 2** on a **Raspberry Pi Compute Module 4 (Rev 1.1)**, entering interactive KDB via SysRq-G (`echo g > /proc/sysrq-trigger`) caused an immediate system hard-reset over UART (`ttyAMA5`).
 
+* **Symptom:** Terminal input froze instantly upon entering `[0]kdb>`, followed by a full SoC boot sequence within seconds.
+* **Failed Mitigations:** Disabling software watchdogs via kernel cmdline (`nowatchdog`, `modprobe.blacklist=bcm2835_wdt`) and firmware overlays (`dtparam=watchdog=off`) failed to stop the resets.
+
+---
+
+### 🔬 Technical Root Cause
+
+The unexpected reboots were caused by **hardware-level power management thresholds**, not software watchdog timers:
+
+1. **PMIC $I^2C$ Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the **MxL7704 PMIC** via $I^2C$. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts $V_{\text{DD\_CORE}}$.
+2. **DVFS $dI/dt$ Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high $dI/dt$ transient on $V_{\text{CORE}}$. Without fixed DVFS parameters, $V_{\text{CORE}}$ dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
+
+---
+
+### 💡 Validation Solution
+
+Instead of pausing execution in KDB (which trips the PMIC $I^2C$ timeout), the system was reconfigured to **lock processor power states** and execute an **atomic backtrace dump to UART via SysRq-C panic** in a single pass.
+
+<details>
+<summary><b>🔍 View Configuration Changes</b></summary>
+
+#### 1. Power & DVFS Stabilization (`/boot/firmware/config.txt`)
+Fixed CPU frequency and voltage to eliminate dynamic power gating and supply rail transients:
+```ini
+# Prevent PMIC voltage droop and maintain stable power rails
+force_turbo=1
+arm_freq=1500
 ## Hardware-in-the-Loop (HIL) Kernel Debug & UART Validation Pipeline
+```
+
 
 ### Objective
 Architected and validated a low-level hardware-in-the-loop (HIL) debug pipeline on a Raspberry Pi Compute Module 4 (CM4) to analyze kernel panic behavior during active workload execution without interfering with primary system GPIO peripherals.
