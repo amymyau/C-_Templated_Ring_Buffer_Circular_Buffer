@@ -15,8 +15,8 @@ While executing a high-stress `ring_buffer` workload pinned to **CPU 2** on a **
 
 The unexpected reboots were caused by **hardware-level power management thresholds**, not software watchdog timers:
 
-1. **PMIC I^2C Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the MxL7704 PMIC via I^2C. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts V_DD_CORE.
-2. **DVFS $dI/dt$ Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high dI/dt transient on V_CORE. Without fixed DVFS parameters, V_CORE dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
+1. **PMIC I2C Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the MxL7704 PMIC via I^2C. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts V_DD_CORE.
+2. **DVFS dI/dt Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high dI/dt transient on V_CORE. Without fixed DVFS parameters, V_CORE dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
 
 ---
 
