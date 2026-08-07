@@ -1,39 +1,85 @@
 
 
+Markdown
+# CM4 Kernel Panic Trace Capture & PMIC Reset Workaround
 
-## 🛠️ Root Cause Analysis & Resolution: CM4 Hardware Reset During KDB Traps
-
-### 📌 Summary & Problem Statement
-While executing a high-stress `ring_buffer` workload pinned to **CPU 2** on a **Raspberry Pi Compute Module 4 (Rev 1.1)**, entering interactive KDB via SysRq-G (`echo g > /proc/sysrq-trigger`) caused an immediate system hard-reset over UART (`ttyAMA5`).
-
-* **Symptom:** Terminal input froze instantly upon entering `[0]kdb>`, followed by a full SoC boot sequence within seconds.
-* **Failed Mitigations:** Disabling software watchdogs via kernel cmdline (`nowatchdog`, `modprobe.blacklist=bcm2835_wdt`) and firmware overlays (`dtparam=watchdog=off`) failed to stop the resets.
+## 📌 Project Overview
+This document outlines the procedure for configuring an **ARM64 Linux Kernel (6.18+)** on a **Raspberry Pi Compute Module 4 (CM4)** to route kernel panic stack traces directly to a serial terminal session (`picocom`) via **UART5 (`/dev/ttyAMA5`)**, alongside post-mortem hardware stabilization findings.
 
 ---
 
-### 🔬 Technical Root Cause
+## 🛠️ Configuration Steps
 
-The unexpected reboots were caused by **hardware-level power management thresholds**, not software watchdog timers:
+### 1. Enable UART5 Overlay
+In `/boot/firmware/config.txt`, enable UART5 on GPIO 12/13:
 
-1. **PMIC I2C Keep-Alive Stall:** Halting execution via KDB freezes all kernel/firmware tasks managing the MxL7704 PMIC via I^2C. The PMIC interprets the missing keep-alive signal as a system fault, drops the `GLOBAL_EN` line, and cuts V_DD_CORE.
-2. **DVFS dI/dt Voltage Droop:** Halting CPU 2 abruptly while running heavy ring-buffer load causes a high dI/dt transient on V_CORE. Without fixed DVFS parameters, V_CORE dips below the PMIC Power-Good threshold, triggering a Power-On Reset (POR).
-
----
-
-### 💡 Validation Solution
-
-Instead of pausing execution in KDB (which trips the PMIC $I^2C$ timeout), the system was reconfigured to **lock processor power states** and execute an **atomic backtrace dump to UART via SysRq-C panic** in a single pass.
-
-<details>
-<summary><b>🔍 View Configuration Changes</b></summary>
-
-#### 1. Power & DVFS Stabilization (`/boot/firmware/config.txt`)
-Fixed CPU frequency and voltage to eliminate dynamic power gating and supply rail transients:
 ```ini
-# Prevent PMIC voltage droop and maintain stable power rails
+# Enable UART5 (TX=GPIO12, RX=GPIO13)
+dtoverlay=uart5
+```
+
+
+
+2. Configure Kernel Command Line Parameters
+Update /boot/firmware/cmdline.txt (must remain a single continuous line) to redirect primary console logging to ttyAMA5 and prevent standard kernel auto-reboots:
+
+Plaintext
+console=ttyAMA5,115200 console=tty1 loglevel=8 sysrq_always_enabled=1 panic=-1 oops=panic bcm2835_wdt.no_reboot=1 bcm2835_wdt.nowayout=0 nmi_watchdog=0 softlockup=0 hung_task_panic=0 nr_cpus=1
+console=ttyAMA5,115200: Directs high-priority kernel printk and oops traces out through UART5.
+
+loglevel=8: Forces all debug and panic messages to serial.
+
+panic=-1 & oops=panic: Freezes the kernel immediately on a fault to retain call stacks.
+
+🧪 Verifying Crash Trace Capture
+Trigger a controlled kernel panic from the host terminal using sysrq:
+
+Bash
+echo c | sudo tee /proc/sysrq-trigger
+Captured Output (picocom)
+The kernel successfully outputs the full call stack trace to the picocom session before halting:
+
+Plaintext
+[  240.410029] sysrq: Trigger a crash
+[  240.413793] Kernel panic - not syncing: sysrq triggered crash
+[  240.419784] CPU: 0 UID: 0 PID: 812 Comm: tee Tainted: G         C          6.18.34+rpt-rpi-v8 #1
+[  240.440921] Call trace:
+[  240.443362]  show_stack+0x20/0x38 (C)
+[  240.447036]  dump_stack_lvl+0x60/0x80
+[  240.457156]  panic+0x68/0x70
+[  240.460034]  sysrq_handle_crash+0x24/0x38
+[  240.526790] ---[ end Kernel panic - not syncing: sysrq triggered crash ]---
+⚠️ Known Issue: Transient PMIC / Hard Reset
+Problem Description
+Despite soft-watchdog disable parameters (panic=-1, bcm2835_wdt.no_reboot=1), the system executes a hard hardware reset immediately after displaying the panic end-marker:
+
+Plaintext
+[  240.526790] ---[ end Kernel panic - not syncing: sysrq triggered crash ]---
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd083]
+Previous Workaround (Deprecated / Unstable)
+Setting fixed clock frequencies in /boot/firmware/config.txt temporarily stabilized power states on some boots, but ultimately proved unreliable over extended validation runs:
+
+Ini, TOML
+# DEPRECATED: Does not resolve long-term PMIC brownout/reset issues
 force_turbo=1
 arm_freq=1500
-```
+Suspected Root Causes
+PMIC Hardware Watchdog / Power Rail Trip: The onboard MXL7704 PMIC hardware monitor or DVFS dynamic voltage step drops below threshold during CPU state change, triggering a hardware power reset.
+
+Signal Integrity / Ground Bounce: Potential parasitic backfeeding or line noise over external USB-UART cable connections (GPIO 12/13) tripping PMIC protection during high-transient events.
+
+🚀 Next Steps
+Transition to SWD/JTAG Debugging: Attach a hardware debugger (e.g., Raspberry Pi Debug Probe) directly to the CM4 IO board SWD header (SWCLK, SWDIO, GND).
+
+Hardware Freeze: Use OpenOCD/GDB to halt the ARM Cortex-A72 cores at the hardware level during an exception, bypassing OS-level PMIC reset triggers and allowing full register inspection.
+
+
+***
+
+<FollowUp label="Want me to generate an OpenOCD configuration section to append to this README?" query="Generate a README section covering OpenOCD and GDB config for Raspberry Pi Debug Probe over SWD."/>
+
+
+
 
 
 # CM4 Ringbuffer & Kernel Debugging Environment
