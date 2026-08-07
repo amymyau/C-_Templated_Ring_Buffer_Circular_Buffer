@@ -20,10 +20,14 @@ dtoverlay=uart5
 
 
 
-2. Configure Kernel Command Line Parameters
-Update /boot/firmware/cmdline.txt (must remain a single continuous line) to redirect primary console logging to ttyAMA5 and prevent standard kernel auto-reboots:
 
-Plaintext
+
+Markdown
+### Configure Kernel Command Line Parameters
+
+Update `/boot/firmware/cmdline.txt` (must remain a **single continuous line**) to redirect primary console logging to `ttyAMA5` and prevent standard kernel auto-reboots:
+
+```text
 console=ttyAMA5,115200 console=tty1 loglevel=8 sysrq_always_enabled=1 panic=-1 oops=panic bcm2835_wdt.no_reboot=1 bcm2835_wdt.nowayout=0 nmi_watchdog=0 softlockup=0 hung_task_panic=0 nr_cpus=1
 console=ttyAMA5,115200: Directs high-priority kernel printk and oops traces out through UART5.
 
@@ -59,7 +63,7 @@ Plaintext
 Previous Workaround (Deprecated / Unstable)
 Setting fixed clock frequencies in /boot/firmware/config.txt temporarily stabilized power states on some boots, but ultimately proved unreliable over extended validation runs:
 
-Ini, TOML
+
 # DEPRECATED: Does not resolve long-term PMIC brownout/reset issues
 force_turbo=1
 arm_freq=1500
@@ -71,14 +75,7 @@ Signal Integrity / Ground Bounce: Potential parasitic backfeeding or line noise 
 🚀 Next Steps
 Transition to SWD/JTAG Debugging: Attach a hardware debugger (e.g., Raspberry Pi Debug Probe) directly to the CM4 IO board SWD header (SWCLK, SWDIO, GND).
 
-Hardware Freeze: Use OpenOCD/GDB to halt the ARM Cortex-A72 cores at the hardware level during an exception, bypassing OS-level PMIC reset triggers and allowing full register inspection.
-
-
-***
-
-<FollowUp label="Want me to generate an OpenOCD configuration section to append to this README?" query="Generate a README section covering OpenOCD and GDB config for Raspberry Pi Debug Probe over SWD."/>
-
-
+Hardware Freeze: Use OpenOCD/GDB to halt the ARM Cortex-A72 cores at the hardware level during an exception, bypassing OS-level PMIC reset triggers and allowing full register inspection
 
 
 
