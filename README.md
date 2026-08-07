@@ -1,6 +1,6 @@
 
 
-Markdown
+
 # CM4 Kernel Panic Trace Capture & PMIC Reset Workaround
 
 ## 📌 Project Overview
@@ -29,12 +29,10 @@ Update `/boot/firmware/cmdline.txt` (must remain a **single continuous line**) t
 
 ```text
 console=ttyAMA5,115200 console=tty1 loglevel=8 sysrq_always_enabled=1 panic=-1 oops=panic bcm2835_wdt.no_reboot=1 bcm2835_wdt.nowayout=0 nmi_watchdog=0 softlockup=0 hung_task_panic=0 nr_cpus=1
+
 console=ttyAMA5,115200: Directs high-priority kernel printk and oops traces out through UART5.
-
 loglevel=8: Forces all debug and panic messages to serial.
-
 panic=-1 & oops=panic: Freezes the kernel immediately on a fault to retain call stacks.
-
 
 ```
 # Verifying Crash Trace Capture
@@ -44,7 +42,6 @@ Trigger a controlled kernel panic from the host terminal using sysrq:
 echo c | sudo tee /proc/sysrq-trigger
 Captured Output (picocom)
 The kernel successfully outputs the full call stack trace to the picocom session before halting:
-
 
 [  240.410029] sysrq: Trigger a crash
 [  240.413793] Kernel panic - not syncing: sysrq triggered crash
@@ -59,7 +56,7 @@ The kernel successfully outputs the full call stack trace to the picocom session
 
 ```
 
-# Problem Description
+## Problem Description
 Despite soft-watchdog disable parameters (panic=-1, bcm2835_wdt.no_reboot=1), the system executes a hard hardware reset immediately after displaying the panic end-marker:
 
 ```
@@ -68,21 +65,21 @@ Despite soft-watchdog disable parameters (panic=-1, bcm2835_wdt.no_reboot=1), th
 
 ```
 
-# Previous Workaround (Deprecated / Unstable)
+## Previous Workaround (Deprecated / Unstable)
 Setting fixed clock frequencies in /boot/firmware/config.txt temporarily stabilized power states on some boots, but ultimately proved unreliable over extended validation runs:
 
-
-# DEPRECATED: Does not resolve long-term PMIC brownout/reset issues
+## DEPRECATED: Does not resolve long-term PMIC brownout/reset issues
+```
 force_turbo=1
 arm_freq=1500
-
-# Suspected Root Causes
+```
+## Suspected Root Causes
 
 PMIC Hardware Watchdog / Power Rail Trip: The onboard MXL7704 PMIC hardware monitor or DVFS dynamic voltage step drops below threshold during CPU state change, triggering a hardware power reset.
 
 Signal Integrity / Ground Bounce: Potential parasitic backfeeding or line noise over external USB-UART cable connections (GPIO 12/13) tripping PMIC protection during high-transient events.
 
-# Next Steps
+## Next Steps
 Transition to SWD/JTAG Debugging: Attach a hardware debugger (e.g., Raspberry Pi Debug Probe) directly to the CM4 IO board SWD header (SWCLK, SWDIO, GND).
 
 Hardware Freeze: Use OpenOCD/GDB to halt the ARM Cortex-A72 cores at the hardware level during an exception, bypassing OS-level PMIC reset triggers and allowing full register inspection
