@@ -40,12 +40,12 @@ panic=-1 & oops=panic: Freezes the kernel immediately on a fault to retain call 
 # Verifying Crash Trace Capture
 Trigger a controlled kernel panic from the host terminal using sysrq:
 
-Bash
+```Bash
 echo c | sudo tee /proc/sysrq-trigger
 Captured Output (picocom)
 The kernel successfully outputs the full call stack trace to the picocom session before halting:
 
-Plaintext
+
 [  240.410029] sysrq: Trigger a crash
 [  240.413793] Kernel panic - not syncing: sysrq triggered crash
 [  240.419784] CPU: 0 UID: 0 PID: 812 Comm: tee Tainted: G         C          6.18.34+rpt-rpi-v8 #1
@@ -57,20 +57,27 @@ Plaintext
 [  240.526790] ---[ end Kernel panic - not syncing: sysrq triggered crash ]---
 ⚠️ Known Issue: Transient PMIC / Hard Reset
 
+```
+
 # Problem Description
 Despite soft-watchdog disable parameters (panic=-1, bcm2835_wdt.no_reboot=1), the system executes a hard hardware reset immediately after displaying the panic end-marker:
 
-Plaintext
+```
 [  240.526790] ---[ end Kernel panic - not syncing: sysrq triggered crash ]---
 [    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd083]
-Previous Workaround (Deprecated / Unstable)
+
+```
+
+# Previous Workaround (Deprecated / Unstable)
 Setting fixed clock frequencies in /boot/firmware/config.txt temporarily stabilized power states on some boots, but ultimately proved unreliable over extended validation runs:
 
 
 # DEPRECATED: Does not resolve long-term PMIC brownout/reset issues
 force_turbo=1
 arm_freq=1500
-Suspected Root Causes
+
+# Suspected Root Causes
+
 PMIC Hardware Watchdog / Power Rail Trip: The onboard MXL7704 PMIC hardware monitor or DVFS dynamic voltage step drops below threshold during CPU state change, triggering a hardware power reset.
 
 Signal Integrity / Ground Bounce: Potential parasitic backfeeding or line noise over external USB-UART cable connections (GPIO 12/13) tripping PMIC protection during high-transient events.
