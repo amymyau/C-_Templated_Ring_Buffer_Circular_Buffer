@@ -35,7 +35,9 @@ loglevel=8: Forces all debug and panic messages to serial.
 
 panic=-1 & oops=panic: Freezes the kernel immediately on a fault to retain call stacks.
 
-🧪 Verifying Crash Trace Capture
+
+```
+# Verifying Crash Trace Capture
 Trigger a controlled kernel panic from the host terminal using sysrq:
 
 Bash
@@ -54,7 +56,8 @@ Plaintext
 [  240.460034]  sysrq_handle_crash+0x24/0x38
 [  240.526790] ---[ end Kernel panic - not syncing: sysrq triggered crash ]---
 ⚠️ Known Issue: Transient PMIC / Hard Reset
-Problem Description
+
+# Problem Description
 Despite soft-watchdog disable parameters (panic=-1, bcm2835_wdt.no_reboot=1), the system executes a hard hardware reset immediately after displaying the panic end-marker:
 
 Plaintext
@@ -72,7 +75,7 @@ PMIC Hardware Watchdog / Power Rail Trip: The onboard MXL7704 PMIC hardware moni
 
 Signal Integrity / Ground Bounce: Potential parasitic backfeeding or line noise over external USB-UART cable connections (GPIO 12/13) tripping PMIC protection during high-transient events.
 
-🚀 Next Steps
+# Next Steps
 Transition to SWD/JTAG Debugging: Attach a hardware debugger (e.g., Raspberry Pi Debug Probe) directly to the CM4 IO board SWD header (SWCLK, SWDIO, GND).
 
 Hardware Freeze: Use OpenOCD/GDB to halt the ARM Cortex-A72 cores at the hardware level during an exception, bypassing OS-level PMIC reset triggers and allowing full register inspection
